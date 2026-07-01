@@ -1,0 +1,1 @@
+Configuración de rutas y validación de acceso. Pendiente de implementar rutas protegidas y layouts.

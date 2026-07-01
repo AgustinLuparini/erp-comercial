@@ -1,0 +1,152 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "backend build",
+			"type": "shell",
+			"command": "cd \"c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend\"; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build",
+			"type": "shell",
+			"command": "cd \"c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend\"; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build 2",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build 2",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build 3",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build 3",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build 4",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build 4",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "install report deps",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' install exceljs pdfkit @types/pdfkit",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "backend build 5",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build 5",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build 6",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build purchases stock",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "backend build stock purchases",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\backend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "frontend build stock purchases",
+			"type": "shell",
+			"command": "Set-Location -LiteralPath 'c:\\progamacion proyectos\\aplicacion web para ferreterias\\frontend'; & 'C:\\Program Files\\nodejs\\npm.cmd' run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		}
+	]
+}

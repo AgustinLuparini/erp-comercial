@@ -1,0 +1,1 @@
+Utilidades compartidas del frontend como formateo, validaciones y helpers.

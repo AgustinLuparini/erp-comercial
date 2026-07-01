@@ -1,0 +1,601 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String                   @id @default(uuid())
+  email               String                   @unique
+  password            String
+  firstName           String?
+  lastName            String?
+  role                Role                     @relation(fields: [roleId], references: [id])
+  roleId              String
+  isActive            Boolean                  @default(true)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  deletedAt           DateTime?
+  refreshTokens       RefreshToken[]
+  loginAudits         LoginAudit[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  appLogs            AppLog[]
+  sales               Sale[]
+  purchases           Purchase[]
+  cashBoxes           CashBox[]
+  cashMovements       CashMovement[]
+  customerEntries     CustomerAccountEntry[]
+  supplierEntries     SupplierAccountEntry[]
+  stockMovements      StockMovement[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@index([deletedAt])
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  description     String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  rolePermissions RolePermission[]
+
+  @@index([code])
+  @@index([deletedAt])
+}
+
+model RolePermission {
+  role         Role       @relation(fields: [roleId], references: [id])
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model Product {
+  id             String           @id @default(uuid())
+  internalCode   String           @unique
+  barcode        String?          @unique
+  name           String
+  description    String?
+  brand          String?
+  category       Category         @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  subcategory    Subcategory      @relation(fields: [subcategoryId], references: [id])
+  subcategoryId  String
+  supplier       Supplier         @relation(fields: [supplierId], references: [id])
+  supplierId     String
+  cost           Decimal          @db.Decimal(12, 2)
+  salePrice      Decimal          @db.Decimal(12, 2)
+  margin         Float
+  iva            Float
+  stock          Int              @default(0)
+  minStock       Int              @default(0)
+  maxStock       Int              @default(0)
+  esAlPeso       Boolean          @default(false)
+  unidadMedida   UnidadMedida     @default(UNIDAD)
+  fechaVencimiento DateTime?
+  alergenos      String[]         @default([])
+  location       String?
+  unit           String
+  weight         Float?
+  images         String[]         @default([])
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+  saleDetails    SaleDetail[]
+  purchaseDetails PurchaseDetail[]
+  stockRecords   Stock[]
+  stockMovements StockMovement[]
+  promotionLinks PromotionProduct[]
+
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([supplierId])
+  @@index([deletedAt])
+}
+
+model Category {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  description  String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  subcategories Subcategory[]
+  products     Product[]
+
+  @@index([deletedAt])
+}
+
+model Subcategory {
+  id          String     @id @default(uuid())
+  name        String
+  category    Category   @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  products    Product[]
+
+  @@unique([name, categoryId])
+  @@index([categoryId])
+  @@index([deletedAt])
+}
+
+model Customer {
+  id           String                     @id @default(uuid())
+  customerType CustomerType               @default(PERSONA_HUMANA)
+  legalEntityType LegalEntityType         @default(PERSONA_HUMANA)
+  vatCondition VatCondition               @default(CONSUMIDOR_FINAL)
+  firstName    String?
+  lastName     String?
+  businessName String?
+  taxId        String?                    @unique
+  dni          String?                    @unique
+  email        String?                    @unique
+  phone        String?
+  address      String?
+  city         String?
+  province     String?
+  creditLimit  Decimal                    @db.Decimal(12, 2) @default(0)
+  discount     Float                      @default(0)
+  balance      Decimal                    @db.Decimal(12, 2) @default(0)
+  isActive     Boolean                    @default(true)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  deletedAt    DateTime?
+  sales        Sale[]
+  accountEntries CustomerAccountEntry[]
+
+  @@index([deletedAt])
+}
+
+model Supplier {
+  id           String                     @id @default(uuid())
+  businessName String
+  taxId        String                     @unique
+  address      String?
+  city         String?
+  province     String?
+  email        String?
+  phone        String?
+  contact      String?
+  notes        String?
+  isActive     Boolean                    @default(true)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  deletedAt    DateTime?
+  products     Product[]
+  purchases    Purchase[]
+  accountEntries SupplierAccountEntry[]
+
+  @@index([deletedAt])
+}
+
+model Sale {
+  id             String           @id @default(uuid())
+  invoiceNumber  String?          @unique
+  customer       Customer?        @relation(fields: [customerId], references: [id])
+  customerId     String?
+  seller         User?            @relation(fields: [userId], references: [id])
+  userId         String?
+  saleType       SaleType         @default(TICKET)
+  status         SaleStatus       @default(PENDING)
+  paymentMethod  PaymentMethod
+  subtotal       Decimal          @db.Decimal(12, 2)
+  discount       Decimal          @db.Decimal(12, 2) @default(0)
+  tax            Decimal          @db.Decimal(12, 2) @default(0)
+  total          Decimal          @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+  details        SaleDetail[]
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model SaleDetail {
+  id          String   @id @default(uuid())
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  saleId      String
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  quantity    Int
+  unit        String
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  discount    Decimal  @db.Decimal(12, 2) @default(0)
+  tax         Decimal  @db.Decimal(12, 2) @default(0)
+  total       Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([saleId])
+  @@index([productId])
+  @@index([deletedAt])
+}
+
+model Purchase {
+  id             String           @id @default(uuid())
+  purchaseNumber String?          @unique
+  supplier       Supplier         @relation(fields: [supplierId], references: [id])
+  supplierId     String
+  user           User?            @relation(fields: [userId], references: [id])
+  userId         String?
+  status         PurchaseStatus   @default(PENDING)
+  subtotal       Decimal          @db.Decimal(12, 2)
+  discount       Decimal          @db.Decimal(12, 2) @default(0)
+  tax            Decimal          @db.Decimal(12, 2) @default(0)
+  total          Decimal          @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+  details        PurchaseDetail[]
+
+  @@index([supplierId])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model PurchaseDetail {
+  id          String   @id @default(uuid())
+  purchase    Purchase @relation(fields: [purchaseId], references: [id])
+  purchaseId  String
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  quantity    Int
+  unit        String
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  discount    Decimal  @db.Decimal(12, 2) @default(0)
+  tax         Decimal  @db.Decimal(12, 2) @default(0)
+  total       Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@index([deletedAt])
+}
+
+model Stock {
+  id         String   @id @default(uuid())
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  location   String
+  quantity   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  movements  StockMovement[]
+
+  @@unique([productId, location])
+  @@index([productId])
+  @@index([deletedAt])
+}
+
+model StockMovement {
+  id          String      @id @default(uuid())
+  product     Product     @relation(fields: [productId], references: [id])
+  productId   String
+  stock       Stock?      @relation(fields: [stockId], references: [id])
+  stockId     String?
+  user        User?       @relation(fields: [userId], references: [id])
+  userId      String?
+  movementType StockMovementType
+  quantity    Int
+  reference   String?
+  note        String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  @@index([productId])
+  @@index([stockId])
+  @@index([deletedAt])
+}
+
+model CashBox {
+  id             String        @id @default(uuid())
+  name           String
+  date           DateTime
+  openingBalance Decimal       @db.Decimal(12, 2)
+  closingBalance Decimal?      @db.Decimal(12, 2)
+  status         CashBoxStatus @default(OPEN)
+  user           User?         @relation(fields: [userId], references: [id])
+  userId         String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  movements      CashMovement[]
+
+  @@index([userId])
+  @@index([date])
+  @@index([deletedAt])
+}
+
+model CashMovement {
+  id          String         @id @default(uuid())
+  cashBox     CashBox        @relation(fields: [cashBoxId], references: [id])
+  cashBoxId   String
+  user        User?          @relation(fields: [userId], references: [id])
+  userId      String?
+  movementType CashMovementType
+  amount      Decimal        @db.Decimal(12, 2)
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+
+  @@index([cashBoxId])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model Promotion {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  promotionType   PromotionType
+  discountAmount  Decimal?         @db.Decimal(12, 2)
+  discountPercent Float?           @default(0)
+  startDate       DateTime
+  endDate         DateTime
+  active          Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  promotionProducts PromotionProduct[]
+
+  @@index([active])
+  @@index([deletedAt])
+}
+
+model PromotionProduct {
+  promotion    Promotion @relation(fields: [promotionId], references: [id])
+  promotionId  String
+  product      Product   @relation(fields: [productId], references: [id])
+  productId    String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@id([promotionId, productId])
+  @@index([productId])
+}
+
+model CustomerAccountEntry {
+  id           String          @id @default(uuid())
+  customer     Customer        @relation(fields: [customerId], references: [id])
+  customerId   String
+  user         User?           @relation(fields: [userId], references: [id])
+  userId       String?
+  entryType    AccountEntryType
+  amount       Decimal         @db.Decimal(12, 2)
+  balanceAfter Decimal         @db.Decimal(12, 2)
+  description  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+
+  @@index([customerId])
+  @@index([deletedAt])
+}
+
+model SupplierAccountEntry {
+  id           String          @id @default(uuid())
+  supplier     Supplier        @relation(fields: [supplierId], references: [id])
+  supplierId   String
+  user         User?           @relation(fields: [userId], references: [id])
+  userId       String?
+  entryType    AccountEntryType
+  amount       Decimal         @db.Decimal(12, 2)
+  balanceAfter Decimal         @db.Decimal(12, 2)
+  description  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+
+  @@index([supplierId])
+  @@index([deletedAt])
+}
+
+model AppLog {
+  id        String    @id @default(uuid())
+  level     String
+  message   String
+  meta      Json?
+  user      User?     @relation(fields: [userId], references: [id])
+  userId    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([level])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  action     String
+  entity     String
+  entityId   String?
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     String?
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@index([entity])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  deletedAt  DateTime?
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  deletedAt  DateTime?
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model LoginAudit {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  email     String
+  success   Boolean
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+enum SaleType {
+  FAC
+  REMITO
+  TICKET
+  PRESUPUESTO
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  QR
+  DEBIT
+  CREDIT
+  ACCOUNT
+}
+
+enum PurchaseStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum StockMovementType {
+  INCOMING
+  OUTGOING
+  ADJUSTMENT
+  TRANSFER
+}
+
+enum CashBoxStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  INCOME
+  EXPENSE
+}
+
+enum PromotionType {
+  DISCOUNT_PERCENTAGE
+  DISCOUNT_AMOUNT
+  BUY_X_GET_Y
+}
+
+enum AccountEntryType {
+  CHARGE
+  PAYMENT
+  ADJUSTMENT
+}
+
+enum CustomerType {
+  PERSONA_HUMANA
+  EMPRESA
+}
+
+enum LegalEntityType {
+  PERSONA_HUMANA
+  SAS
+  SRL
+  SA
+  SAU
+  COOPERATIVA
+  ASOCIACION_CIVIL
+  FUNDACION
+  OTRO
+}
+
+enum VatCondition {
+  CONSUMIDOR_FINAL
+  MONOTRIBUTISTA
+  RESPONSABLE_INSCRIPTO
+  EXENTO
+  NO_RESPONSABLE
+  MONOTRIBUTO_SOCIAL
+}
+
+enum UnidadMedida {
+  GR
+  KG
+  UNIDAD
+}

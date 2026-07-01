@@ -1,0 +1,1 @@
+Servicios HTTP y llamadas a API. Aquí irán los adaptadores de Axios y React Query.

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --background: #fafafa;
+  --foreground: #020817;
+  --card: #ffffff;
+  --card-foreground: #020817;
+  --muted: #f8fafc;
+  --muted-foreground: #475569;
+  --border: #e2e8f0;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: 'Plus Jakarta Sans', 'Manrope', 'Segoe UI', sans-serif;
+}
+
+body {
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(148, 163, 184, 0.14) 0, transparent 30%),
+    radial-gradient(circle at 0% 100%, rgba(148, 163, 184, 0.1) 0, transparent 30%),
+    var(--background);
+}
+
+* {
+  box-sizing: border-box;
+}

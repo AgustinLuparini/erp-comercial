@@ -1,0 +1,1 @@
+Hooks compartidos para carga de datos, autenticación y formularios.
