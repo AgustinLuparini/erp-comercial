@@ -34,7 +34,17 @@ export class CashController {
   async income(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const authReq = req as AuthRequest;
-      return sendSuccess(res, await cashService.addMovement({ ...req.body, movementType: 'INCOME', userId: authReq.user?.userId }), 'Ingreso registrado', 201);
+      return sendSuccess(
+        res,
+        await cashService.addMovement({
+          ...req.body,
+          cashBoxId: req.params.id,
+          movementType: 'INCOME',
+          userId: authReq.user?.userId
+        }),
+        'Ingreso registrado',
+        201
+      );
     } catch (error) {
       next(error);
     }
@@ -43,7 +53,17 @@ export class CashController {
   async expense(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const authReq = req as AuthRequest;
-      return sendSuccess(res, await cashService.addMovement({ ...req.body, movementType: 'EXPENSE', userId: authReq.user?.userId }), 'Egreso registrado', 201);
+      return sendSuccess(
+        res,
+        await cashService.addMovement({
+          ...req.body,
+          cashBoxId: req.params.id,
+          movementType: 'EXPENSE',
+          userId: authReq.user?.userId
+        }),
+        'Egreso registrado',
+        201
+      );
     } catch (error) {
       next(error);
     }

@@ -127,6 +127,14 @@ export class CashService {
   }
 
   async addMovement(data: CashMovementCreateDTO) {
+    if (!data.cashBoxId) {
+      throw new AppError('Debe indicar la caja', 400);
+    }
+
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
+      throw new AppError('El monto debe ser mayor a cero', 400);
+    }
+
     const cashBox = await prisma.cashBox.findFirst({ where: { id: data.cashBoxId, deletedAt: null } });
     if (!cashBox) throw new AppError('Caja no encontrada', 404);
     if (cashBox.status !== 'OPEN') throw new AppError('La caja está cerrada', 400);
