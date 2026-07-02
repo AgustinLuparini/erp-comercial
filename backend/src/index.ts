@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { json, urlencoded } from 'express';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config/config.js';
@@ -25,7 +25,17 @@ import uploadRouter from './routes/upload.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const swaggerPath = resolve(__dirname, './swagger.json');
+const swaggerCandidates = [
+  resolve(__dirname, './swagger.json'),
+  resolve(process.cwd(), 'dist/swagger.json'),
+  resolve(process.cwd(), 'src/swagger.json')
+];
+const swaggerPath = swaggerCandidates.find((candidate) => existsSync(candidate));
+
+if (!swaggerPath) {
+  throw new Error('swagger.json not found in dist or src');
+}
+
 const swaggerDocument = JSON.parse(readFileSync(swaggerPath, 'utf-8'));
 
 const app = express();

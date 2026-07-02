@@ -370,7 +370,7 @@ export class SaleService {
     if (!data.items.length) throw new AppError('La venta debe tener productos', 400);
 
     const sale = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      let saleCustomer: { id: string; businessName: string | null; firstName: string | null; lastName: string | null; balance: Prisma.Decimal } | null = null;
+      let saleCustomer: { id: string; businessName: string | null; firstName: string | null; lastName: string | null; balance: unknown } | null = null;
       const requiresOpenCashBox = data.saleType !== 'PRESUPUESTO';
 
       const openedCashBox = requiresOpenCashBox
@@ -430,13 +430,16 @@ export class SaleService {
           }
         });
 
-        const orderedStocks = stocks.sort((a, b) => {
+        const orderedStocks = stocks.sort((a: (typeof stocks)[number], b: (typeof stocks)[number]) => {
           if (a.location === 'GENERAL' && b.location !== 'GENERAL') return -1;
           if (a.location !== 'GENERAL' && b.location === 'GENERAL') return 1;
           return a.location.localeCompare(b.location);
         });
 
-        const totalAvailable = orderedStocks.reduce((sum, currentStock) => sum + currentStock.quantity, 0);
+        const totalAvailable = orderedStocks.reduce(
+          (sum: number, currentStock: (typeof orderedStocks)[number]) => sum + currentStock.quantity,
+          0
+        );
         if (totalAvailable < item.quantity) {
           throw new AppError(`Stock insuficiente para ${product.name}`, 400);
         }

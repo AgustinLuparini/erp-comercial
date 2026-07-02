@@ -43,6 +43,19 @@ cd dietetica-almacen-natural
 1. Crear backend/.env con la cadena DATABASE_URL y secretos JWT.
 2. Crear frontend/.env con VITE_API_URL apuntando al backend local.
 
+Ejemplo recomendado para dominio local:
+
+```env
+VITE_API_URL=http://erp-comercial.local:4000/api
+```
+
+Agregar entradas al archivo hosts del sistema para usar el dominio local:
+
+```txt
+127.0.0.1 erp-comercial.local
+127.0.0.1 www.erp-comercial.local
+```
+
 ### 3) Levantar dependencias de infraestructura
 
 ```bash
@@ -91,8 +104,8 @@ npm run dev
 
 Accesos:
 
-1. Frontend: http://localhost:5173
-2. Backend API: http://localhost:4000/api
+1. Frontend: http://erp-comercial.local:5173
+2. Backend API: http://erp-comercial.local:4000/api
 
 ## Puesta en produccion local para comercio
 
