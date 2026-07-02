@@ -831,8 +831,8 @@ function ProductFormDialog({ open, onClose, product }: ProductFormDialogProps) {
               type="text"
               inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
               value={formData.stock ?? ''}
-              InputProps={{ readOnly: true }}
-              helperText="Se actualiza desde Compras o Stock"
+              onChange={(e) => setFormData({ ...formData, stock: parseIntegerInput(e.target.value) })}
+              helperText="Stock actual editable"
             />
           </Grid>
           <Grid item xs={12} sm={4}>

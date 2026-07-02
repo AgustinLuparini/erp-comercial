@@ -8,6 +8,7 @@ import {
 } from '../dtos/product.dto.js';
 import { AppError } from '../utils/apiResponse.js';
 import { prisma } from '../prisma/client.js';
+import type { Prisma } from '@prisma/client';
 
 const FIXED_IVA_PERCENT = 21;
 
@@ -74,38 +75,52 @@ export class ProductService {
     const supplierId = data.supplierId || await this.getDefaultSupplierId();
     const margin = data.margin ?? this.calculateMargin(data.cost, data.salePrice);
 
-    const product = await prisma.product.create({
-      data: {
-        internalCode,
-        barcode: data.barcode,
-        name: data.name,
-        description: data.description,
-        brand: data.brand,
-        categoryId,
-        subcategoryId,
-        supplierId,
-        cost: data.cost,
-        salePrice: data.salePrice,
-        iva: FIXED_IVA_PERCENT,
-        margin,
-        stock: data.stock || 0,
-        minStock: data.minStock || 0,
-        maxStock: data.maxStock || 0,
-        esAlPeso: data.esAlPeso ?? false,
-        unidadMedida: data.unidadMedida ?? 'UNIDAD',
-        fechaVencimiento: data.fechaVencimiento ? new Date(data.fechaVencimiento) : null,
-        alergenos: data.alergenos ?? [],
-        unit: data.unit,
-        location,
-        weight: data.weight,
-        images,
-        isActive: data.isActive ?? true
-      },
-      include: {
-        category: { select: { id: true, name: true } },
-        subcategory: { select: { id: true, name: true } },
-        supplier: { select: { id: true, businessName: true } }
-      }
+    const targetStock = Math.max(0, data.stock || 0);
+
+    const product = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const createdProduct = await tx.product.create({
+        data: {
+          internalCode,
+          barcode: data.barcode,
+          name: data.name,
+          description: data.description,
+          brand: data.brand,
+          categoryId,
+          subcategoryId,
+          supplierId,
+          cost: data.cost,
+          salePrice: data.salePrice,
+          iva: FIXED_IVA_PERCENT,
+          margin,
+          stock: targetStock,
+          minStock: data.minStock || 0,
+          maxStock: data.maxStock || 0,
+          esAlPeso: data.esAlPeso ?? false,
+          unidadMedida: data.unidadMedida ?? 'UNIDAD',
+          fechaVencimiento: data.fechaVencimiento ? new Date(data.fechaVencimiento) : null,
+          alergenos: data.alergenos ?? [],
+          unit: data.unit,
+          location,
+          weight: data.weight,
+          images,
+          isActive: data.isActive ?? true
+        }
+      });
+
+      await tx.stock.upsert({
+        where: { productId_location: { productId: createdProduct.id, location } },
+        update: { quantity: targetStock, deletedAt: null },
+        create: { productId: createdProduct.id, location, quantity: targetStock }
+      });
+
+      return tx.product.findUniqueOrThrow({
+        where: { id: createdProduct.id },
+        include: {
+          category: { select: { id: true, name: true } },
+          subcategory: { select: { id: true, name: true } },
+          supplier: { select: { id: true, businessName: true } }
+        }
+      });
     });
 
     return this.formatProductResponse(product);
@@ -189,7 +204,7 @@ export class ProductService {
   async updateProduct(id: string, data: UpdateProductDTO): Promise<ProductResponseDTO> {
     const existing = await prisma.product.findUnique({
       where: { id },
-      select: { cost: true, margin: true }
+      select: { cost: true, margin: true, location: true }
     });
 
     if (!existing) {
@@ -198,6 +213,7 @@ export class ProductService {
 
     const nextCost = data.cost ?? Number(existing.cost);
     const marginForAutoPrice = data.margin ?? Number(existing.margin);
+    const nextStock = data.stock !== undefined ? Math.max(0, data.stock) : undefined;
     let nextSalePrice = data.salePrice;
     let nextMargin = data.margin;
 
@@ -220,39 +236,51 @@ export class ProductService {
 
     const location = data.location !== undefined ? this.normalizeLocation(data.location) : undefined;
 
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        internalCode: data.internalCode,
-        barcode: data.barcode,
-        name: data.name,
-        description: data.description,
-        brand: data.brand,
-        categoryId: data.categoryId,
-        subcategoryId: data.subcategoryId,
-        supplierId: data.supplierId,
-        cost: data.cost,
-        salePrice: nextSalePrice,
-        iva: FIXED_IVA_PERCENT,
-        margin: nextMargin,
-        stock: data.stock,
-        minStock: data.minStock,
-        maxStock: data.maxStock,
-        esAlPeso: data.esAlPeso,
-        unidadMedida: data.unidadMedida,
-        fechaVencimiento: data.fechaVencimiento !== undefined ? (data.fechaVencimiento ? new Date(data.fechaVencimiento) : null) : undefined,
-        alergenos: data.alergenos,
-        unit: data.unit,
-        location,
-        weight: data.weight,
-        images,
-        isActive: data.isActive
-      },
-      include: {
-        category: { select: { id: true, name: true } },
-        subcategory: { select: { id: true, name: true } },
-        supplier: { select: { id: true, businessName: true } }
+    const preferredStockLocation = this.normalizeLocation(location ?? existing.location ?? 'GENERAL');
+
+    const product = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const updatedProduct = await tx.product.update({
+        where: { id },
+        data: {
+          internalCode: data.internalCode,
+          barcode: data.barcode,
+          name: data.name,
+          description: data.description,
+          brand: data.brand,
+          categoryId: data.categoryId,
+          subcategoryId: data.subcategoryId,
+          supplierId: data.supplierId,
+          cost: data.cost,
+          salePrice: nextSalePrice,
+          iva: FIXED_IVA_PERCENT,
+          margin: nextMargin,
+          stock: nextStock,
+          minStock: data.minStock,
+          maxStock: data.maxStock,
+          esAlPeso: data.esAlPeso,
+          unidadMedida: data.unidadMedida,
+          fechaVencimiento: data.fechaVencimiento !== undefined ? (data.fechaVencimiento ? new Date(data.fechaVencimiento) : null) : undefined,
+          alergenos: data.alergenos,
+          unit: data.unit,
+          location,
+          weight: data.weight,
+          images,
+          isActive: data.isActive
+        }
+      });
+
+      if (nextStock !== undefined) {
+        await this.syncTotalStock(tx, id, nextStock, preferredStockLocation);
       }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id: updatedProduct.id },
+        include: {
+          category: { select: { id: true, name: true } },
+          subcategory: { select: { id: true, name: true } },
+          supplier: { select: { id: true, businessName: true } }
+        }
+      });
     });
 
     return this.formatProductResponse(product);
@@ -435,6 +463,43 @@ export class ProductService {
   private normalizeLocation(location?: string): string {
     const normalized = location?.trim();
     return normalized && normalized.length > 0 ? normalized : 'GENERAL';
+  }
+
+  private async syncTotalStock(tx: Prisma.TransactionClient, productId: string, targetStock: number, preferredLocation: string): Promise<void> {
+    const stocks = await tx.stock.findMany({
+      where: { productId, deletedAt: null }
+    });
+
+    let preferredStock = stocks.find((stock) => stock.location === preferredLocation) ?? null;
+
+    if (!preferredStock) {
+      preferredStock = await tx.stock.upsert({
+        where: { productId_location: { productId, location: preferredLocation } },
+        update: { deletedAt: null },
+        create: { productId, location: preferredLocation, quantity: 0 }
+      });
+    }
+
+    const totalCurrentStock = stocks.reduce((sum, stock) => sum + stock.quantity, 0);
+    const stockOutsidePreferredLocation = totalCurrentStock - preferredStock.quantity;
+
+    if (targetStock < stockOutsidePreferredLocation) {
+      throw new AppError('No se puede bajar el stock total por debajo del stock existente en otras ubicaciones', 400);
+    }
+
+    const nextPreferredQuantity = targetStock - stockOutsidePreferredLocation;
+
+    if (nextPreferredQuantity !== preferredStock.quantity) {
+      await tx.stock.update({
+        where: { id: preferredStock.id },
+        data: { quantity: nextPreferredQuantity }
+      });
+    }
+
+    await tx.product.update({
+      where: { id: productId },
+      data: { stock: targetStock }
+    });
   }
 
   private async getDefaultCategoryId(): Promise<string> {

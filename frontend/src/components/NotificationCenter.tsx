@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Badge, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material';
+import { Badge, Box, Button, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material';
 import { subscribeNotifications, type NotificationItem } from '../lib/notifications';
 
 export default function NotificationCenter() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
 
   useEffect(() => {
     const unsubscribe = subscribeNotifications((notification) => {
@@ -24,6 +28,12 @@ export default function NotificationCenter() {
         </Badge>
       </IconButton>
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+        <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 320 }}>
+          <Typography variant="subtitle2">Notificaciones</Typography>
+          <Button size="small" onClick={clearNotifications} disabled={notifications.length === 0}>
+            Limpiar
+          </Button>
+        </Box>
         {notifications.length === 0 ? (
           <MenuItem disabled>Sin notificaciones</MenuItem>
         ) : (

@@ -13,6 +13,7 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "tsx prisma/seed.ts",
     "seed": "npm run prisma:seed",
+    "db:clear": "tsx prisma/clear-data.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

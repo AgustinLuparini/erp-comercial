@@ -30,8 +30,8 @@ const navItems = [
   { label: 'Compras', path: '/purchases', badge: 'CO' },
   { label: 'Stock', path: '/stock', badge: 'ST' },
   { label: 'Ventas', path: '/sales', badge: 'VT' },
-  { label: 'Caja', path: '/cash', badge: 'CX' },
-  { label: 'Uploads', path: '/uploads', badge: 'UP' }
+  { label: 'Caja', path: '/cash', badge: 'CX' }
+  //{ label: 'Uploads', path: '/uploads', badge: 'UP' }
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {

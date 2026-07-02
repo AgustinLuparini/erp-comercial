@@ -8,8 +8,38 @@ const privilegedRoles = ['ADMIN', 'GERENTE'];
 const businessName = process.env.BUSINESS_NAME?.trim() || 'ERP Comercial';
 
 const toNumber = (value: unknown) => Number(value ?? 0);
-const isWeightedProduct = (product: { esAlPeso?: boolean; unidadMedida?: string; unit?: string }) =>
-  Boolean(product.esAlPeso || product.unidadMedida === 'KG' || String(product.unit).toUpperCase() === 'KILO');
+
+const normalizeUnitToken = (value: unknown) => String(value ?? '').trim().toUpperCase();
+
+const isWeightedProduct = (product: { esAlPeso?: boolean; unidadMedida?: string; unit?: string }) => {
+  const unit = normalizeUnitToken(product.unit);
+  const unidadMedida = normalizeUnitToken(product.unidadMedida);
+
+  return Boolean(
+    product.esAlPeso ||
+      unidadMedida === 'KG' ||
+      unidadMedida === 'KILO' ||
+      unidadMedida === 'KILOGRAMO' ||
+      unidadMedida === 'KILOGRAMOS' ||
+      unit === 'KG' ||
+      unit === 'KILO' ||
+      unit === 'KILOGRAMO' ||
+      unit === 'KILOGRAMOS'
+  );
+};
+
+const toStockQuantity = (quantity: number, saleUnit: 'UNIDAD' | 'GR', product: { esAlPeso?: boolean; unidadMedida?: string; unit?: string }) => {
+  if (saleUnit === 'GR') {
+    if (!isWeightedProduct(product)) {
+      throw new AppError('Unidad de venta invalida para este producto', 400);
+    }
+
+    return quantity / 1000;
+  }
+
+  if (!isWeightedProduct(product)) return quantity;
+  return quantity;
+};
 
 const formatSaleUnit = (unit: string) => (unit === 'GR' ? 'g' : 'u');
 
@@ -425,6 +455,11 @@ export class SaleService {
         const saleUnit = item.saleUnit ?? (isWeightedProduct(product) ? 'GR' : 'UNIDAD');
         const baseUnitPrice = isWeightedProduct(product) ? toNumber(product.salePrice) / 1000 : toNumber(product.salePrice);
         const unitPrice = data.allowPriceOverride && privilegedRoles.includes(role || '') && item.unitPrice !== undefined ? item.unitPrice : baseUnitPrice;
+        const requestedStockQuantity = toStockQuantity(item.quantity, saleUnit, product);
+
+        if (requestedStockQuantity <= 0) {
+          throw new AppError(`Cantidad invalida para ${product.name}`, 400);
+        }
 
         const lineTotal = (unitPrice * item.quantity) - (item.discount ?? 0) + (item.tax ?? 0);
 
@@ -446,11 +481,11 @@ export class SaleService {
           (sum: number, currentStock: (typeof orderedStocks)[number]) => sum + currentStock.quantity,
           0
         );
-        if (totalAvailable < item.quantity) {
+        if (totalAvailable < requestedStockQuantity) {
           throw new AppError(`Stock insuficiente para ${product.name}`, 400);
         }
 
-        let remainingQuantity = item.quantity;
+        let remainingQuantity = requestedStockQuantity;
         for (const stock of orderedStocks) {
           if (remainingQuantity <= 0) break;
 
