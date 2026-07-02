@@ -40,6 +40,20 @@ const FIXED_IVA_PERCENT = 21;
 
 const CONSUMIDOR_FINAL_VALUE = 'CONSUMIDOR_FINAL';
 
+const isWeightedProduct = (product: Product) =>
+  Boolean(product.esAlPeso || product.unidadMedida === 'KG' || product.unit?.toUpperCase() === 'KILO');
+
+const getSaleUnit = (product: Product) => (isWeightedProduct(product) ? 'GR' : 'UNIDAD');
+
+const getSaleUnitPrice = (product: Product) => (isWeightedProduct(product) ? Number(product.salePrice) / 1000 : Number(product.salePrice));
+
+const normalizeCartItem = (item: CartItem): CartItem => {
+  const saleUnit = item.saleUnit ?? getSaleUnit(item.product);
+  const unitPrice = saleUnit === 'GR' ? getSaleUnitPrice(item.product) : item.unitPrice ?? Number(item.product.salePrice);
+
+  return { ...item, saleUnit, unitPrice };
+};
+
 const getCustomerDisplayName = (customer: Customer) => {
   if (customer.businessName?.trim()) return customer.businessName;
   const fullName = `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim();
@@ -72,7 +86,7 @@ export default function SalesPage() {
 
       const parsedCart = JSON.parse(rawCart) as CartItem[];
       if (Array.isArray(parsedCart)) {
-        setCart(parsedCart);
+        setCart(parsedCart.map(normalizeCartItem));
       }
     } catch {
       window.localStorage.removeItem(SALES_CART_STORAGE_KEY);
@@ -124,7 +138,7 @@ export default function SalesPage() {
   );
 
   const subtotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity * (item.unitPrice ?? Number(item.product.salePrice)), 0),
+    () => cart.reduce((sum, item) => sum + item.quantity * (item.unitPrice ?? getSaleUnitPrice(item.product)), 0),
     [cart]
   );
   const discountPercent = Number(discount || 0);
@@ -136,10 +150,19 @@ export default function SalesPage() {
     setCart((current) => {
       const existing = current.find((item) => item.product.id === product.id);
       if (existing) {
-        return current.map((item) => (item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+        return current.map((item) => (item.product.id === product.id ? normalizeCartItem({ ...item, quantity: item.quantity + 1 }) : normalizeCartItem(item)));
       }
 
-      return [...current, { product, productId: product.id, quantity: 1, unitPrice: Number(product.salePrice) }];
+      return [
+        ...current,
+        {
+          product,
+          productId: product.id,
+          quantity: 1,
+          unitPrice: getSaleUnitPrice(product),
+          saleUnit: getSaleUnit(product)
+        }
+      ];
     });
     setQuery('');
     setResults([]);
@@ -236,6 +259,7 @@ export default function SalesPage() {
           productId: item.product.id,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          saleUnit: item.saleUnit,
           discount: 0,
           tax: 0
         }))
@@ -310,6 +334,9 @@ export default function SalesPage() {
                         <Box>
                           <Typography variant="body2" fontWeight={700}>{product.name}</Typography>
                           <Typography variant="caption">{product.internalCode} - ${Number(product.salePrice).toFixed(2)}</Typography>
+                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                            {isWeightedProduct(product) ? 'Venta por peso' : 'Venta por unidad'}
+                          </Typography>
                         </Box>
                         <Button size="small" startIcon={<AddIcon />} onClick={() => addProduct(product)}>Agregar</Button>
                       </Box>
@@ -335,22 +362,45 @@ export default function SalesPage() {
                   <TableBody>
                     {cart.map((item) => (
                       <TableRow key={item.product.id}>
-                        <TableCell>{item.product.name}</TableCell>
-                        <TableCell align="right">
-                          <TextField size="small" type="number" value={item.quantity} onChange={(e) => updateQuantity(item.product.id, Number(e.target.value))} sx={{ width: 80 }} inputProps={{ min: 1 }} />
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>{item.product.name}</Typography>
                         </TableCell>
                         <TableCell align="right">
                           <TextField
                             size="small"
                             type="number"
-                            value={item.unitPrice}
-                            onChange={(e) => updatePrice(item.product.id, Number(e.target.value))}
-                            sx={{ width: 110 }}
-                            disabled={!allowPriceOverride}
-                            inputProps={{ min: 0, step: '0.01' }}
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.product.id, Number(e.target.value))}
+                            sx={{ width: 132, '& .MuiInputBase-input': { fontSize: '0.95rem' } }}
+                            inputProps={{ min: 1, step: 1 }}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  {(item.saleUnit ?? getSaleUnit(item.product)) === 'GR' ? 'g' : 'u'}
+                                </InputAdornment>
+                              )
+                            }}
                           />
                         </TableCell>
-                        <TableCell align="right">{(item.quantity * (item.unitPrice ?? Number(item.product.salePrice))).toFixed(2)}</TableCell>
+                        <TableCell align="right">
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={(item.saleUnit ?? getSaleUnit(item.product)) === 'GR' ? Number(item.product.salePrice) : item.unitPrice}
+                            onChange={(e) => updatePrice(item.product.id, Number(e.target.value))}
+                            sx={{ width: 132, '& .MuiInputBase-input': { fontSize: '0.95rem' } }}
+                            disabled={(item.saleUnit ?? getSaleUnit(item.product)) === 'GR' || !allowPriceOverride}
+                            inputProps={{ min: 0, step: '0.01' }}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  {(item.saleUnit ?? getSaleUnit(item.product)) === 'GR' ? '$/kg' : '$/u'}
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">{(item.quantity * (item.unitPrice ?? getSaleUnitPrice(item.product))).toFixed(2)}</TableCell>
                         <TableCell align="right">
                           <IconButton onClick={() => removeItem(item.product.id)} size="small"><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>

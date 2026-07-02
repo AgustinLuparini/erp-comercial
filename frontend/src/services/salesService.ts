@@ -8,6 +8,7 @@ export interface SaleItem {
   unitPrice?: number;
   discount?: number;
   tax?: number;
+  saleUnit?: 'UNIDAD' | 'GR';
 }
 
 export interface ConfirmSalePayload {

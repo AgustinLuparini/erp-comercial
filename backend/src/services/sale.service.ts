@@ -8,6 +8,10 @@ const privilegedRoles = ['ADMIN', 'GERENTE'];
 const businessName = process.env.BUSINESS_NAME?.trim() || 'ERP Comercial';
 
 const toNumber = (value: unknown) => Number(value ?? 0);
+const isWeightedProduct = (product: { esAlPeso?: boolean; unidadMedida?: string; unit?: string }) =>
+  Boolean(product.esAlPeso || product.unidadMedida === 'KG' || String(product.unit).toUpperCase() === 'KILO');
+
+const formatSaleUnit = (unit: string) => (unit === 'GR' ? 'g' : 'u');
 
 export class SaleService {
   private async getSaleForTicket(saleId: string) {
@@ -62,7 +66,7 @@ export class SaleService {
           <tr>
             <td class="col-code">${detail.product.internalCode}</td>
             <td class="col-product">${detail.product.name}</td>
-            <td class="col-qty">${detail.quantity}</td>
+            <td class="col-qty">${detail.quantity} ${formatSaleUnit(detail.unit)}</td>
             <td class="col-unit">${Number(detail.unitPrice).toFixed(2)}</td>
             <td class="col-total">${Number(detail.total).toFixed(2)}</td>
           </tr>`
@@ -324,7 +328,7 @@ export class SaleService {
         drawTableRow(cursorY, [
           detail.product.internalCode,
           detail.product.name,
-          String(detail.quantity),
+          `${detail.quantity} ${formatSaleUnit(detail.unit)}`,
           Number(detail.unitPrice).toFixed(2),
           Number(detail.total).toFixed(2)
         ]);
@@ -418,7 +422,9 @@ export class SaleService {
         const product = await tx.product.findFirst({ where: { id: item.productId, deletedAt: null } });
         if (!product) throw new AppError(`Producto no encontrado: ${item.productId}`, 404);
 
-        const unitPrice = data.allowPriceOverride && privilegedRoles.includes(role || '') && item.unitPrice !== undefined ? item.unitPrice : toNumber(product.salePrice);
+        const saleUnit = item.saleUnit ?? (isWeightedProduct(product) ? 'GR' : 'UNIDAD');
+        const baseUnitPrice = isWeightedProduct(product) ? toNumber(product.salePrice) / 1000 : toNumber(product.salePrice);
+        const unitPrice = data.allowPriceOverride && privilegedRoles.includes(role || '') && item.unitPrice !== undefined ? item.unitPrice : baseUnitPrice;
 
         const lineTotal = (unitPrice * item.quantity) - (item.discount ?? 0) + (item.tax ?? 0);
 
@@ -474,7 +480,7 @@ export class SaleService {
             saleId: saleRecord.id,
             productId: product.id,
             quantity: item.quantity,
-            unit: product.unit,
+            unit: saleUnit,
             unitPrice,
             discount: item.discount ?? 0,
             tax: item.tax ?? 0,
